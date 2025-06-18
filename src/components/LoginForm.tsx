@@ -20,7 +20,7 @@ const passwordRegex = {
   upper: /[A-Z]/,
   lower: /[a-z]/,
   special: /[^A-Za-z0-9]/,
-  noConsecutiveNumbers: !/(?:\d)(?=\d)/,
+  noConsecutiveNumbers: /(?:\d)(?=\d)/,
   noConsecutiveLetters:
     /^(?!.*(ab|bc|cd|de|ef|fg|gh|hi|ij|jk|kl|lm|mn|no|op|pq|qr|rs|st|tu|uv|vw|wx|xy|yz))/i,
 };
