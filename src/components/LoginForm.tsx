@@ -20,7 +20,7 @@ const passwordRegex = {
   upper: /[A-Z]/,
   lower: /[a-z]/,
   special: /[^A-Za-z0-9]/,
-  noConsecutiveNumbers: /^(?!.*(\d)\1)/,
+  noConsecutiveNumbers: !/(?:\d)(?=\d)/,
   noConsecutiveLetters:
     /^(?!.*(ab|bc|cd|de|ef|fg|gh|hi|ij|jk|kl|lm|mn|no|op|pq|qr|rs|st|tu|uv|vw|wx|xy|yz))/i,
 };
@@ -39,7 +39,7 @@ const formSchema = z.object({
     .refine((val) => passwordRegex.special.test(val), {
       message: "Debe contener al menos un carácter especial",
     })
-    .refine((val) => passwordRegex.noConsecutiveNumbers.test(val), {
+    .refine((val) => !/(?:\d)(?=\d)/.test(val), {
       message: "No se permiten números consecutivos",
     })
     .refine((val) => passwordRegex.noConsecutiveLetters.test(val), {
