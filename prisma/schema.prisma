@@ -26,3 +26,12 @@ model User{
   isOnline    Boolean @default(false)
   isActive    Boolean @default(true)
 }
+ model Inmueble {
+  id          Int      @id @default(autoincrement())
+  titulo      String
+  descripcion String?
+  precio      Float
+  ubicacion   String
+  imagenUrl   String?
+  creadoEn    DateTime @default(now())
+}

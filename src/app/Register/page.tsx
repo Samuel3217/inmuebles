@@ -16,6 +16,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -33,7 +34,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { registerUser } from "./actions";
-
+import { useRouter } from "next/navigation";
+import { Checkbox } from "@/components/ui/checkbox";
+import Terminos from "@/components/ui/terminos";
+import Privacidad from "@/components/ui/privacidad";
 
 const formSchema = z
   .object({
@@ -83,6 +87,7 @@ const formSchema = z
 function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   const mutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -97,6 +102,9 @@ function Register() {
       console.error("Error al registrar usuario:", error.message);
     },
   });
+
+  const [termsAccepted, setTermsAccepted] = useState(false);
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -113,6 +121,8 @@ function Register() {
     formData.append("password", values.password);
 
     mutation.mutate(formData);
+
+    router.push("/");
   }
 
   function handleShowPassword() {
@@ -168,7 +178,7 @@ function Register() {
                           type={showPassword ? "text" : "password"}
                           className="bg-gray-200"
                           {...field}
-                          onChange={(e) => {    
+                          onChange={(e) => {
                             field.onChange(e);
                             form.trigger("password");
                           }}
@@ -223,12 +233,59 @@ function Register() {
               />
             </form>
           </Form>
+          <div className="flex  items-center gap-3 justify-center py-3 mt-5">
+            <Checkbox
+              id="terms"
+              checked={termsAccepted}
+              onCheckedChange={(checked) => setTermsAccepted(!!checked)}
+              className="bg-gray-600 cursor-pointer"
+            />
+
+            <div className="flex-col">
+              <Dialog>
+                <DialogTrigger className="text-gray-700 hover:text-black transition-all duration-300 cursor-pointer">
+                  Aceptar terminos y condiciones
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-center text-2xl">
+                      Terminos y condiciones
+                    </DialogTitle>
+                    <DialogDescription asChild>
+                      <Terminos />
+                    </DialogDescription>
+                  </DialogHeader>
+                </DialogContent>
+              </Dialog>
+              <h1>Y el</h1>
+              <Dialog>
+                <DialogTrigger className="text-gray-700 hover:text-black transition-all duration-300 cursor-pointer">
+                  Aviso de privacidad
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-center text-2xl">
+                      Estimado usuario
+                    </DialogTitle>
+                    <DialogDescription asChild>
+                      <Privacidad />
+                    </DialogDescription>
+                  </DialogHeader>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
         </CardContent>
         <CardFooter>
           <Button
             type="submit"
             form="register-form"
-            className="w-full bg-gray-700 hover:bg-gray-800 text-white"
+            className={`w-full text-white transition-all duration-300 ${
+              termsAccepted
+                ? "bg-gray-700 hover:bg-gray-800 cursor-pointer"
+                : "bg-gray-400 opacity-50 cursor-not-allowed"
+            }`}
+            disabled={!termsAccepted || mutation.isPending}
           >
             {mutation.isPending ? "Registrando..." : "Registrarse"}
           </Button>

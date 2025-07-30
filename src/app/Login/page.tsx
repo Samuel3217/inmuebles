@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/form";
 import { Eye, EyeClosed } from "lucide-react";
 import { loginUser } from "./actions";
+import { useRouter } from "next/navigation";
+
 
 const formSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
@@ -57,9 +59,13 @@ const formSchema = z.object({
     ),
 });
 
+
+
 function LoginForm() {
   const [successMessage, setSuccessMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -76,7 +82,11 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
 
     if (res.success) {
       setSuccessMessage("✅ " + res.message);
-      // Aquí podrías redirigir, guardar sesión, etc.
+
+      // Espera 2 segundos para que se vea el mensaje
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
     } else {
       setSuccessMessage("❌ " + res.message);
     }
@@ -85,6 +95,7 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
     setSuccessMessage("❌ Ocurrió un error inesperado. Inténtalo de nuevo.");
   }
 }
+
 
   useEffect(() => {
     if (successMessage) {
