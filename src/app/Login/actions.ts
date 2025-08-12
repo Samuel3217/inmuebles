@@ -10,27 +10,28 @@ import { NextRequest, NextResponse } from "next/server";
 const secretKey = "secret";
 const key = new TextEncoder().encode(secretKey);
 
-interface JwtPayload {
-  validate: { email: string};
-  role: { role: string};
+interface JwtPayload extends Record<string, unknown> {
+  validate: { email: string };
+  role: { role: string };
   expires: Date;
 }
 
 
 export async function encrypt(payload: JwtPayload) {
-  return await new SignJWT(payload)
+  return await new SignJWT(payload as JwtPayload) // jose requiere que sea Record<string, unknown>
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("10 sec from now")
+    .setExpirationTime("10s")
     .sign(key);
 }
 
 export async function decrypt(input: string): Promise<JwtPayload> {
-  const { payload } = await jwtVerify(input, key, {
+  const { payload } = await jwtVerify<JwtPayload>(input, key, {
     algorithms: ["HS256"],
   });
   return payload;
 }
+
 
 export async function loginUser(formData: FormData) {
   const email = String(formData.get("email"));
@@ -53,8 +54,11 @@ export async function loginUser(formData: FormData) {
 
     // Verify credentials && get the user
 
-    const validate = { email: formData.get("email")};
-    const role = {role: formData.get("role")}
+const validate = { email: String(formData.get("email")) };
+const role = { role: String(formData.get("role")) };
+    if (!validate.email || !role.role) {
+      return { success: false, message: "Datos incompletos" };
+    }
     const expires = new Date(Date.now() + 10 * 1000);
     const session = await encrypt({ validate, role, expires });
 
