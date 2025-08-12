@@ -46,12 +46,12 @@ export default function InmueblesPage() {
   }, [cambio, cambio.status]);
 
   return (
-    <div className="p-4">
+    <div className="p-4 w-min">
       <h1 className="text-2xl font-bold mb-4">Inmuebles</h1>
-      <ul className="space-y-4">
+      <ul className="space-y-4 flex flex-row flex-wrap gap-4">
         {mostrar.data &&
           mostrar.data.map((i) => (
-            <li key={i.id} className="border p-4 rounded">
+            <li key={i.id} className="border p-4 rounded gap-4">
               <h2 className="text-xl font-semibold">{i.titulo}</h2>
               <p>{i.descripcion}</p>
               <p className="font-bold">

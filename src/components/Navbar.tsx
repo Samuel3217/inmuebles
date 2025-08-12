@@ -1,7 +1,7 @@
-// src/components/Navbar.tsx
-"use client"
+"use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { buttonVariants } from "./ui/button";
 import {
   DropdownMenu,
@@ -11,49 +11,85 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-// import { getUserRole } from "@/lib/getUserRole";
-// import { useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode";
 
-
+type DecodedToken = {
+  id: string;
+  rol: "ADMIN" | "CLIENT";
+  exp: number;
+};
 
 function Navbar() {
+  const [userRole, setUserRole] = useState<"ADMIN" | "CLIENT" | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-//     const [role, setRole] = useState("CLIENT");
+ useEffect(() => {
+  if (typeof window === "undefined") return;
 
-//  useEffect(() => {
-//     async function getUserRoleLocal() {
-//         if (userId) {
-//           setRole(await getUserRole(userId));
-//         }
-//     }
-//     getUserRoleLocal()
-//  }, []);
+  try {
+    const tokenRow = document.cookie
+      .split("; ")
+      .find((row) => row.startsWith("token="));
+    const token = tokenRow?.split("=")[1];
+
+    console.log("TOKEN:", token);
+
+    if (token) {
+      const decoded: DecodedToken = jwtDecode(token);
+      const now = Date.now() / 1000;
+      if (decoded.exp < now) return;
+
+      setIsLoggedIn(true);
+      setUserRole(decoded.rol);
+    }
+  } catch (err) {
+    console.error("Token inválido o expirado:", err);
+  }
+}, []);
+
+
+  function handleLogout() {
+    document.cookie =
+      "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    window.location.href = "/login";
+  }
 
   return (
     <nav className="w-full h-[7vh] bg-gray-100 flex flex-row justify-between items-center px-4">
       <DropdownMenu>
-        <DropdownMenuTrigger>Iniciar Sesión</DropdownMenuTrigger>
+        <DropdownMenuTrigger>Menú</DropdownMenuTrigger>
         <DropdownMenuContent>
           <DropdownMenuLabel>¿Qué desea hacer?</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <Link
-              href="/Register"
-              className={buttonVariants({ variant: "ghost" })}
-            >
-              Registrarse
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem>
-            <Link
-              href="/Login"
-              className={buttonVariants({ variant: "ghost" })}
-            >
-              Iniciar sesión
-            </Link>
-          </DropdownMenuItem>
 
-          {/* {role === "ADMIN" && ( */}
+          {!isLoggedIn && (
+            <>
+            <DropdownMenuItem>
+                <Link
+                  href="/"
+                  className={buttonVariants({ variant: "ghost" })}
+                  >Home</Link>
+            </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Link
+                  href="/Register"
+                  className={buttonVariants({ variant: "ghost" })}
+                >
+                  Registrarse
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Link
+                  href="/Login"
+                  className={buttonVariants({ variant: "ghost" })}
+                >
+                  Iniciar sesión
+                </Link>
+              </DropdownMenuItem>
+            </>
+          )}
+
+          {isLoggedIn && userRole === "ADMIN" && (
             <DropdownMenuItem>
               <Link
                 href="/users"
@@ -62,7 +98,18 @@ function Navbar() {
                 Usuarios
               </Link>
             </DropdownMenuItem>
-          {/* )} */}
+          )}
+
+          {isLoggedIn && (
+            <DropdownMenuItem>
+              <button
+                onClick={handleLogout}
+                className={buttonVariants({ variant: "ghost", className: "w-full text-left" })}
+              >
+                Cerrar sesión
+              </button>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
     </nav>

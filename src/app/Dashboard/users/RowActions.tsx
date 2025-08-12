@@ -16,7 +16,7 @@ import {
   Edit,
   MoreHorizontal,
 } from "lucide-react";
-import { deleteUser } from "./actions";
+import { deleteUser } from "../actions";
 import { useUsersStore } from "./useUsers";
 
 function RowActions({ user }: { user: User }) {

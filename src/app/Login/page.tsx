@@ -1,9 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,96 +11,151 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Eye, EyeClosed } from "lucide-react";
-import { loginUser } from "./actions";
-import { useRouter } from "next/navigation";
+import { Eye, EyeClosed,  } from "lucide-react";
+import { loginUser } from "./actions"; // Server action
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-
-const formSchema = z.object({
-  email: z.string().email("Correo electrónico inválido"),
-  password: z
-    .string()
-    .min(8, "Contraseña debe tener al menos 8 caracteres")
-    .refine((val) => /[A-Z]/.test(val), {
-      message: "Debe contener al menos una letra mayúscula",
-    })
-    .refine((val) => /[a-z]/.test(val), {
-      message: "Debe contener al menos una letra minúscula",
-    })
-    .refine((val) => /[^a-zA-Z0-9]/.test(val), {
-      message: "Debe contener al menos un carácter especial",
-    })
-    .refine((val) => !/(?:\\d)(?=\\d)/.test(val), {
-      message: "No se permiten números consecutivos",
-    })
-    .refine(
-      (val) => {
-        const lower = val.toLowerCase();
-        for (let i = 0; i < lower.length - 1; i++) {
-          const curr = lower.charCodeAt(i);
-          const next = lower.charCodeAt(i + 1);
-          if (/[a-z]/.test(lower[i]) && next === curr + 1) return false;
-        }
-        return true;
+function LoginForm() {
+    const passwordValidations = [
+      {
+        message: "Al menos 8 caracteres",
+        check: (val: string) => val.length >= 8,
       },
       {
-        message: "No se permiten letras consecutivas (ej: abc)",
-      }
-    ),
+        message: "Al menos una letra mayúscula",
+        check: (val: string) => /[A-Z]/.test(val),
+      },
+      {
+        message: "Al menos una letra minúscula",
+        check: (val: string) => /[a-z]/.test(val),
+      },
+      {
+        message: "Al menos un carácter especial",
+        check: (val: string) => /[^a-zA-Z0-9]/.test(val),
+      },
+      {
+        message: "Sin números consecutivos (ej. 123)",
+        check: (val: string) => {
+          const digits = val.replace(/\D/g, "");
+          for (let i = 0; i < digits.length - 2; i++) {
+            const n1 = parseInt(digits[i]);
+            const n2 = parseInt(digits[i + 1]);
+            const n3 = parseInt(digits[i + 2]);
+            if (n2 === n1 + 1 && n3 === n2 + 1) {
+              return false; // hay tres consecutivos
+            }
+          }
+          return true;
+        },
+      },
+      {
+        message: "Sin letras consecutivas (ej. abc)",
+        check: (val: string) => {
+          const letters = val.toLowerCase().replace(/[^a-z]/g, "");
+          for (let i = 0; i < letters.length - 2; i++) {
+            const c1 = letters.charCodeAt(i);
+            const c2 = letters.charCodeAt(i + 1);
+            const c3 = letters.charCodeAt(i + 2);
+            if (c2 === c1 + 1 && c3 === c2 + 1) {
+              return false; // hay tres consecutivas
+            }
+          }
+          return true;
+        },
+      },
+    ];
+
+
+  const [showPassword, setShowPassword] = useState(false);
+
+  const formSchema = z.object({
+    email: z.string().email("Debe ser un correo electrónico válido"),
+    password: z
+      .string()
+      .min(8, "Contraseña debe tener al menos 8 caracteres")
+      .refine((val) => /[A-Z]/.test(val), {
+        message: "Contraseña debe contener al menos una letra mayúscula",
+      })
+      .refine((val) => /[a-z]/.test(val), {
+        message: "Contraseña debe contener al menos una letra minúscula",
+      })
+      .refine((val) => /[^a-zA-Z0-9]/.test(val), {
+        message: "Contraseña debe contener al menos un carácter especial",
+      })
+      .refine(
+        (val: string) => {
+          const digits = val.replace(/\D/g, "");
+          for (let i = 0; i < digits.length - 2; i++) {
+            const n1 = parseInt(digits[i]);
+            const n2 = parseInt(digits[i + 1]);
+            const n3 = parseInt(digits[i + 2]);
+            if (n2 === n1 + 1 && n3 === n2 + 1) {
+              return false; // hay tres consecutivos
+            }
+          }
+          return true;
+        },
+        {
+          message: "Contraseña no debe contener números consecutivos",
+        }
+      )
+      .refine(
+        (val: string) => {
+          const letters = val.toLowerCase().replace(/[^a-z]/g, "");
+          for (let i = 0; i < letters.length - 2; i++) {
+            const c1 = letters.charCodeAt(i);
+            const c2 = letters.charCodeAt(i + 1);
+            const c3 = letters.charCodeAt(i + 2);
+            if (c2 === c1 + 1 && c3 === c2 + 1) {
+              return false; // hay tres consecutivas
+            }
+          }
+          return true;
+        },
+        {
+          message: "Contraseña no debe contener letras consecutivas (ej: abc)",
+        }
+      ),
+  });
+
+   const form = useForm<z.infer<typeof formSchema>>({
+     resolver: zodResolver(formSchema),
+     defaultValues: {
+       email: "",
+       password: "",
+     },
+   });
+
+const loginMutation = useMutation({
+  mutationFn: async (formData: FormData) => {
+    return await loginUser(formData);
+  },
+    onSuccess: () => {
+        console.log("Login exitoso");
+    },
 });
 
 
+function onSubmit(values: z.infer<typeof formSchema>) {
 
-function LoginForm() {
-  const [successMessage, setSuccessMessage] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const router = useRouter();
+    console.log("Procesando login con:", values);
+  const formData = new FormData();
 
+  formData.append("email", values.email);
+  formData.append("password", values.password);
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  loginUser(formData)
 
-
-async function onSubmit(values: z.infer<typeof formSchema>) {
-  try {
-    const res = await loginUser(values.email, values.password);
-
-    if (res.success) {
-      setSuccessMessage("✅ " + res.message);
-
-      // Espera 2 segundos para que se vea el mensaje
-      setTimeout(() => {
-        router.push("/");
-      }, 1000);
-    } else {
-      setSuccessMessage("❌ " + res.message);
-    }
-  } catch (error) {
-    console.error("Error durante el inicio de sesión:", error);
-    setSuccessMessage("❌ Ocurrió un error inesperado. Inténtalo de nuevo.");
-  }
+  loginMutation.mutate(formData);
 }
 
+function handleShowPassword() {
+  setShowPassword((val) => !val);
+}
 
-  useEffect(() => {
-    if (successMessage) {
-      const timeout = setTimeout(() => setSuccessMessage(""), 3000);
-      return () => clearTimeout(timeout);
-    }
-  }, [successMessage]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -125,7 +178,6 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                     <FormLabel>Correo electrónico</FormLabel>
                     <FormControl>
                       <Input
-                        type="email"
                         {...field}
                         onChange={(e) => {
                           field.onChange(e);
@@ -157,7 +209,7 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                         />
                         <button
                           type="button"
-                          onClick={() => setShowPassword((prev) => !prev)}
+                          onClick={handleShowPassword}
                           className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
                         >
                           {showPassword ? (
@@ -168,22 +220,30 @@ async function onSubmit(values: z.infer<typeof formSchema>) {
                         </button>
                       </div>
                     </FormControl>
-                    <FormMessage />
+                    <ul className="text-xs list-disc ml-5">
+                      {passwordValidations.map((v, i) => (
+                        <li
+                          key={i}
+                          className={
+                            v.check(field.value)
+                              ? "text-green-500"
+                              : "text-red-500"
+                          }
+                        >
+                          {v.message}
+                        </li>
+                      ))}
+                    </ul>
                   </FormItem>
                 )}
               />
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="flex flex-col gap-2">
+        <CardFooter>
           <Button type="submit" form="login-form" className="w-full">
             Ingresar
           </Button>
-          {successMessage && (
-            <p className="text-green-600 text-sm font-medium text-center">
-              {successMessage}
-            </p>
-          )}
         </CardFooter>
       </Card>
     </div>
